@@ -3,7 +3,7 @@
 import cv2
 import mediapipe as mp
 import os
-import re
+import time
 
 
 # ======================
@@ -11,30 +11,53 @@ import re
 # ======================
 
 
-def get_next_file_number(directory, prefix, extension):
+def update_next_file_number(cache_file_path):
     """
-    Gets the next file number in the directory with the given prefix and extension
+    Update the file number stored in a cache file.
 
     Args:
-        directory (_type_): _description_
-        prefix (_type_): _description_
-        extension (_type_): _description_
+        cache_file_path (str): Path to the cache file.
 
     Returns:
-        _type_: _description_
+        int: The next file number.
     """
-    files = os.listdir(directory)
-    pattern = re.compile(rf"{prefix}(\d+)\.{extension}$")
-    numbers = []
-    for file in files:
-        match = pattern.match(file)
-        if match:
-            numbers.append(int(match.group(1)))
-    if numbers:
-        next_number = max(numbers) + 1
-    else:
-        next_number = 1
-    return next_number
+    try:
+        if os.path.exists(cache_file_path):
+            with open(cache_file_path, "r") as file:
+                current_number = int(file.read().strip())
+        else:
+            current_number = 0
+
+        next_number = current_number + 1
+
+        with open(cache_file_path, "w") as file:
+            file.write(str(next_number))
+
+        return next_number
+
+    except Exception as e:
+        print(f"Error updating file number: {e}")
+        return None
+
+
+def get_current_file_number(cache_file_path):
+    """
+    Read the current file number from the cache file.
+
+    Args:
+        cache_file_path (str): Path to the cache file.
+
+    Returns:
+        int: The current file number.
+    """
+    try:
+        if os.path.exists(cache_file_path):
+            with open(cache_file_path, "r") as file:
+                return int(file.read().strip())
+        return 0  # Default to 0 if no cache file exists
+    except Exception as e:
+        print(f"Error reading file number: {e}")
+        return None
 
 
 def save_coordinates_wave(pose_landmarks, left_hand_landmarks, right_hand_landmarks):
@@ -42,28 +65,32 @@ def save_coordinates_wave(pose_landmarks, left_hand_landmarks, right_hand_landma
     Function to save coordinates to file
 
     Args:
-        pose_landmarks ():
-        left_hand_landmarks ():
-        right_hand_landmarks ():
+        pose_landmarks (object): Data structure containing pose landmarks.
+        left_hand_landmarks (object): Data structure containing left hand landmarks.
+        right_hand_landmarks (object): Data structure containing right hand landmarks.
     """
     dataset_location = "dataset/1_waving/"
-    prefix = "coordinates"
+    cache_file_path = f"{dataset_location}cache_file.txt"
+    prefix = "waving"
     extension = "csv"
-    number = get_next_file_number(dataset_location, prefix, extension)
-    filename = f"{dataset_location}{prefix}{number}.{extension}"
-    with open(filename, "w") as f:
-        if pose_landmarks:
-            f.write("UpperBody Landmarks:\n")
-            for id, lm in enumerate(pose_landmarks.landmark):
-                f.write(f"{id}: ({lm.x}, {lm.y}, {lm.z})\n")
-        if left_hand_landmarks:
-            f.write("Left Hand Landmarks:\n")
-            for id, lm in enumerate(left_hand_landmarks.landmark):
-                f.write(f"{id}: ({lm.x}, {lm.y}, {lm.z})\n")
-        if right_hand_landmarks:
-            f.write("Right Hand Landmarks:\n")
-            for id, lm in enumerate(right_hand_landmarks.landmark):
-                f.write(f"{id}: ({lm.x}, {lm.y}, {lm.z})\n")
+    number = get_current_file_number(cache_file_path)
+
+    for frame in range(20):
+        filename = f"{dataset_location}{prefix}{number}_{frame}.{extension}"
+        with open(filename, "w") as f:
+            if pose_landmarks:
+                f.write("Upper Body Landmarks:\n")
+                for id, lm in enumerate(pose_landmarks.landmark):
+                    f.write(f"{id}: ({lm.x}, {lm.y}, {lm.z})\n")
+            if left_hand_landmarks:
+                f.write("Left Hand Landmarks:\n")
+                for id, lm in enumerate(left_hand_landmarks.landmark):
+                    f.write(f"{id}: ({lm.x}, {lm.y}, {lm.z})\n")
+            if right_hand_landmarks:
+                f.write("Right Hand Landmarks:\n")
+                for id, lm in enumerate(right_hand_landmarks.landmark):
+                    f.write(f"{id}: ({lm.x}, {lm.y}, {lm.z})\n")
+        time.sleep(1)
 
 
 def save_coordinates_thumbs_up(
@@ -73,9 +100,9 @@ def save_coordinates_thumbs_up(
     Function to save coordinates to file
 
     Args:
-        pose_landmarks ():
-        left_hand_landmarks ():
-        right_hand_landmarks ():
+        pose_landmarks (object): Data structure containing pose landmarks.
+        left_hand_landmarks (object): Data structure containing left hand landmarks.
+        right_hand_landmarks (object): Data structure containing right hand landmarks.
     """
     with open("coordinates.txt", "w") as f:
         if pose_landmarks:
@@ -99,9 +126,9 @@ def save_coordinates_pointing(
     Function to save coordinates to file
 
     Args:
-        pose_landmarks ():
-        left_hand_landmarks ():
-        right_hand_landmarks ():
+        pose_landmarks (object): Data structure containing pose landmarks.
+        left_hand_landmarks (object): Data structure containing left hand landmarks.
+        right_hand_landmarks (object): Data structure containing right hand landmarks.
     """
     with open("coordinates.txt", "w") as f:
         if pose_landmarks:
@@ -125,9 +152,9 @@ def save_coordinates_shrugging(
     Function to save coordinates to file
 
     Args:
-        pose_landmarks ():
-        left_hand_landmarks ():
-        right_hand_landmarks ():
+        pose_landmarks (object): Data structure containing pose landmarks.
+        left_hand_landmarks (object): Data structure containing left hand landmarks.
+        right_hand_landmarks (object): Data structure containing right hand landmarks.
     """
     with open("coordinates.txt", "w") as f:
         if pose_landmarks:
@@ -151,9 +178,9 @@ def save_coordinates_come_here(
     Function to save coordinates to file
 
     Args:
-        pose_landmarks ():
-        left_hand_landmarks ():
-        right_hand_landmarks ():
+        pose_landmarks (object): Data structure containing pose landmarks.
+        left_hand_landmarks (object): Data structure containing left hand landmarks.
+        right_hand_landmarks (object): Data structure containing right hand landmarks.
     """
     with open("coordinates.txt", "w") as f:
         if pose_landmarks:
