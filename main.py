@@ -28,7 +28,7 @@ def extractFrames(video_name):
     video_path = os.path.join(input_dir, video_name)
     video = cv2.VideoCapture(video_path)
     fps = video.get(cv2.CAP_PROP_FPS)
-    frame_interval = int(fps / 2)
+    frame_interval = int(fps / 4)
 
     count = 0
     frame_count = 0
@@ -234,7 +234,8 @@ if __name__ == "__main__":
     mp_holistic = mp.solutions.holistic
 
     # Convert all videos in /raw_data/videos to frames
-    parseVideos()
+    # parseVideos()
 
-    # test
-    # captureLandmarks("raw_data/frames/testing")
+    # Capture landmarks for files in directory
+    for x in range(1, 13):
+        captureLandmarks(f"raw_data/frames/WAV{x}")

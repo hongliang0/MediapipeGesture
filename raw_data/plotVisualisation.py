@@ -44,7 +44,7 @@ def plot_points(points):
 
 if __name__ == "__main__":
     # Change the path to the file you want to plot manually
-    file_name = "./frames/testing/Untitled1_landmarks.txt"
+    file_name = "./frames/TU/TU1/TU1_13_landmarks.txt"
 
     curr_dir = os.path.dirname(os.path.realpath(__file__))
     file_path = os.path.join(curr_dir, file_name)
