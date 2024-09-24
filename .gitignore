@@ -1,9 +1,9 @@
 # Files from dataset
-dataset/1_waving/*.csv
-dataset/2_thumpsUp/*.csv
-dataset/3_pointing/*.csv
-dataset/4_shrugging/*.csv
-dataset/5_comeHere/*.csv
+dataset/1_waving/*
+dataset/2_thumpsUp/*
+dataset/3_pointing/*
+dataset/4_shrugging/*
+dataset/5_comeHere/*
 
 # Raw data
 raw_data/videos/*

@@ -28,7 +28,7 @@ def extractFrames(video_name):
     video_path = os.path.join(input_dir, video_name)
     video = cv2.VideoCapture(video_path)
     fps = video.get(cv2.CAP_PROP_FPS)
-    frame_interval = int(fps / 4)
+    frame_interval = int(fps / 5)
 
     count = 0
     frame_count = 0
@@ -114,6 +114,11 @@ def captureLandmarks(image_folder):
             save_landmarks_to_file(
                 image_folder, filename, hand_detection_result, body_detection_result
             )
+
+
+# ======================
+# Draw Results
+# ======================
 
 
 def draw_landmarks_on_image(rgb_image, hand_detection_result, body_detection_result):
@@ -237,5 +242,5 @@ if __name__ == "__main__":
     # parseVideos()
 
     # Capture landmarks for files in directory
-    for x in range(1, 13):
-        captureLandmarks(f"raw_data/frames/WAV{x}")
+    for x in range(1, 51):
+        captureLandmarks(f"raw_data/frames/{x}")
