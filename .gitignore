@@ -53,7 +53,7 @@ htmlcov/
 .coverage
 .coverage.*
 .cache
-nosetests.xml
+nosetests.xml and discuss 
 coverage.xml
 *.cover
 .hypothesis/
