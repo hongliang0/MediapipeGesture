@@ -239,7 +239,7 @@ if __name__ == "__main__":
     mp_holistic = mp.solutions.holistic
 
     # Convert all videos in /raw_data/videos to frames
-    # parseVideos()
+    parseVideos()
 
     # Capture landmarks for files in directory
     for x in range(1, 51):
