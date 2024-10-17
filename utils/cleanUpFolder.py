@@ -20,5 +20,5 @@ def delete_non_txt_files(parent_folder):
 
 # Replace with actual path of your parent folder
 current_folder = os.path.dirname(os.path.realpath(__file__))
-parent_folder_path = os.path.join(current_folder, "../dataset/5_comeHere/")
+parent_folder_path = os.path.join(current_folder, "../dataset/1_waving/")
 delete_non_txt_files(parent_folder_path)

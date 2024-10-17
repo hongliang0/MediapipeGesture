@@ -17,7 +17,7 @@ from mediapipe.tasks.python import vision
 
 
 def extractFrames(video_name):
-    """Extract frames from video
+    """Extract exactly 10 frames from the video.
 
     Args:
         video_name (str): video name
@@ -27,17 +27,21 @@ def extractFrames(video_name):
 
     video_path = os.path.join(input_dir, video_name)
     video = cv2.VideoCapture(video_path)
-    fps = video.get(cv2.CAP_PROP_FPS)
-    frame_interval = int(fps / 5)
+
+    total_frames = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
+    frame_interval = max(
+        1, total_frames // 10
+    )  # Calculate frame interval for 10 frames
 
     count = 0
     frame_count = 0
     video_name = video_name.split(".")[0]
     output_dir = os.path.join(curr_dir, "raw_data", "frames", video_name)
     os.makedirs(output_dir, exist_ok=True)
+
     while True:
         success, frame = video.read()
-        if not success:
+        if not success or frame_count >= 10:
             break
         if count % frame_interval == 0:
             cv2.imwrite(
