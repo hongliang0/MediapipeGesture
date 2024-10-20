@@ -1,6 +1,7 @@
 # Files from dataset
 dataset/*
 original_dataset/*
+best_model.pth
 
 # Raw data
 raw_data/*
