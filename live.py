@@ -86,7 +86,7 @@ def liveCapture():
     ]
 
     # Define model with updated parameters
-    input_dim = 2  # x and y coordinates
+    input_dim = 3  # x and y coordinates
     hidden_dim = 256
     num_layers = 2
     output_dim = 5  # Number of gestures
@@ -95,7 +95,7 @@ def liveCapture():
     model = EnhancedConvLSTMModel(
         input_dim, hidden_dim, num_layers, output_dim, dropout
     )
-    model.load_state_dict(torch.load("2d_best_model.pth"))
+    model.load_state_dict(torch.load("3d_best_model.pth"))
     model.eval()
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.to(device)
@@ -146,7 +146,7 @@ def liveCapture():
                     )
                     left_hand_landmarks = np.array(
                         [
-                            [landmark.x, landmark.y]
+                            [landmark.x, landmark.y, landmark.z]
                             for landmark in results.left_hand_landmarks.landmark
                         ]
                     )
@@ -162,7 +162,7 @@ def liveCapture():
                     )
                     right_hand_landmarks = np.array(
                         [
-                            [landmark.x, landmark.y]
+                            [landmark.x, landmark.y, landmark.z]
                             for landmark in results.right_hand_landmarks.landmark
                         ]
                     )
@@ -179,7 +179,7 @@ def liveCapture():
                     )
                     body_landmarks = np.array(
                         [
-                            [landmark.x, landmark.y]
+                            [landmark.x, landmark.y, landmark.z]
                             for landmark in results.pose_landmarks.landmark
                         ]
                     )
@@ -214,8 +214,9 @@ def liveCapture():
                     # )
                     # debug_save_landmarks_to_txt(current_frame_landmarks, frame_counter)
                     # debug_plot_landmarks(current_frame_landmarks, frame_counter)
+                    normalized_landmarks = normalize_points(current_frame_landmarks)
                     landmarks_list.append(
-                        reorder_landmarks(current_frame_landmarks, order="distance")
+                        reorder_landmarks(normalized_landmarks, order="distance")
                     )
 
             # print(f"Current frames added to buffer {len(landmarks_list)}. Inferencing...")
@@ -225,7 +226,7 @@ def liveCapture():
                     device
                 )
                 # print(f"Before: {landmarks_tensor.size()}")
-                landmarks_tensor = landmarks_tensor.view(1, 10, 50, 2)
+                landmarks_tensor = landmarks_tensor.view(1, 10, 50, 3)
                 # Print out the contents of the tensor
                 # print(landmarks_tensor)
                 # print(f"After: {landmarks_tensor.size()}")
@@ -245,8 +246,6 @@ def liveCapture():
                 gesture_display_time = time.time()
                 print(f"Detected gesture: {detected_gesture}")
 
-                # Only keep last 9 frames
-                # landmarks_list = landmarks_list[1:]
                 landmarks_list = []
 
             if detected_gesture and (time.time() - gesture_display_time) > 5:
@@ -301,6 +300,20 @@ def liveCapture():
     cv2.destroyAllWindows()
 
 
+def normalize_points(points):
+    # Calculate the centroids for x, y, and z
+    centroid_x = sum(point[0] for point in points) / len(points)
+    centroid_y = sum(point[1] for point in points) / len(points)
+    centroid_z = sum(point[2] for point in points) / len(points)
+
+    # Normalize points by centering around the centroids
+    normalized_points = [
+        (x - centroid_x, y - centroid_y, z - centroid_z) for x, y, z in points
+    ]
+
+    return normalized_points
+
+
 def debug_save_landmarks_to_txt(current_frame_landmarks, frame_number):
     # Convert the landmarks array to ensure it's a NumPy array
     current_frame_landmarks = np.array(current_frame_landmarks)
@@ -337,6 +350,7 @@ def reorder_landmarks(landmarks, order="distance"):
         centroid_x = sum(point[0] for point in landmarks) / len(landmarks)
         centroid_y = sum(point[1] for point in landmarks) / len(landmarks)
         landmarks.sort(key=lambda p: math.atan2(p[1] - centroid_y, p[0] - centroid_x))
+    # print(landmarks)
     return landmarks
 
 

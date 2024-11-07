@@ -46,7 +46,7 @@ def plot_points_fixed_x_rotation(points):
 
 if __name__ == "__main__":
     # Change the path to the file you want to plot manually
-    file_name = "../3d_dataset/1_waving/1/1_9_landmarks.txt"
+    file_name = "../3d_dataset/3_pointing/1/1_4_landmarks.txt"
     # file_name = "../landmarks_frame_46.txt"
     # file_name = "../test.txt"
     curr_dir = os.path.dirname(os.path.realpath(__file__))
