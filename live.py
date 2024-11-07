@@ -21,55 +21,66 @@ import torch
 import torch.nn as nn
 
 
-class EnhancedConvLSTMModel(nn.Module):
-    def __init__(self, input_dim, hidden_dim, num_layers, output_dim, dropout_prob=0.3):
-        super(EnhancedConvLSTMModel, self).__init__()
-        # First Conv layer
+class RefinedConvModel(nn.Module):
+    def __init__(self, input_dim, output_dim, dropout_prob=0.3):
+        super(RefinedConvModel, self).__init__()
+
+        # First Conv layer - process the 2D coordinates
         self.conv1 = nn.Conv1d(
-            in_channels=input_dim, out_channels=64, kernel_size=5, padding=2
+            in_channels=input_dim, out_channels=64, kernel_size=3, padding=1
         )
         self.bn1 = nn.BatchNorm1d(64)
         self.relu1 = nn.ReLU()
 
         # Second Conv layer
         self.conv2 = nn.Conv1d(
-            in_channels=64, out_channels=128, kernel_size=5, padding=2
+            in_channels=64, out_channels=128, kernel_size=3, padding=1
         )
         self.bn2 = nn.BatchNorm1d(128)
         self.relu2 = nn.ReLU()
 
-        # LSTM for temporal dependencies
-        self.lstm = nn.LSTM(
-            input_size=128,
-            hidden_size=hidden_dim,
-            num_layers=num_layers,
-            batch_first=True,
-            dropout=dropout_prob,
+        # Third Conv layer (optional, but keeps the feature extraction strong)
+        self.conv3 = nn.Conv1d(
+            in_channels=128, out_channels=256, kernel_size=3, padding=1
         )
+        self.bn3 = nn.BatchNorm1d(256)
+        self.relu3 = nn.ReLU()
 
-        # Dropout and fully connected layer
+        # Dropout layer
         self.fc_dropout = nn.Dropout(dropout_prob)
-        self.fc = nn.Linear(hidden_dim, output_dim)
+
+        # Fully connected layer for classification
+        self.fc = nn.Linear(256, output_dim)
 
     def forward(self, x):
+        # x shape: (batch_size, num_files, num_points, num_features)
         batch_size, num_files, num_points, num_features = x.size()
 
-        # Reshape for Conv1D
+        # Reshape for Conv1D: (batch_size * num_files, num_features, num_points)
         x = x.view(batch_size * num_files, num_points, num_features).permute(0, 2, 1)
 
         # Apply Conv1D layers with BatchNorm and ReLU
-        x = self.relu1(self.bn1(self.conv1(x)))
-        x = self.relu2(self.bn2(self.conv2(x)))
+        x = self.relu1(
+            self.bn1(self.conv1(x))
+        )  # (batch_size * num_files, 64, num_points)
+        x = self.relu2(
+            self.bn2(self.conv2(x))
+        )  # (batch_size * num_files, 128, num_points)
+        x = self.relu3(
+            self.bn3(self.conv3(x))
+        )  # (batch_size * num_files, 256, num_points)
 
-        # Reshape for LSTM input
-        x = x.permute(0, 2, 1).view(batch_size, num_files, num_points, -1).mean(1)
+        # Global Average Pooling over the time dimension
+        x = x.mean(dim=2)  # Shape: (batch_size * num_files, 256)
 
-        # LSTM processing
-        lstm_out, _ = self.lstm(x)
+        # Reshape back to (batch_size, num_files, 256) and apply dropout
+        x = x.view(batch_size, num_files, -1)
+        x = self.fc_dropout(x)
 
-        # Final output with dropout and fully connected layer
-        final_output = self.fc_dropout(lstm_out[:, -1, :])
-        final_output = self.fc(final_output)
+        # Apply the final fully connected layer to each sequence independently
+        final_output = self.fc(
+            x.mean(dim=1)
+        )  # Global average pooling across sequences for classification
 
         return final_output
 
@@ -85,17 +96,11 @@ def liveCapture():
         "Come Here",
     ]
 
-    # Define model with updated parameters
-    input_dim = 3  # x and y coordinates
-    hidden_dim = 256
-    num_layers = 2
+    input_dim = 2  # x and y coordinates
     output_dim = 5  # Number of gestures
-    dropout = 0.3
-
-    model = EnhancedConvLSTMModel(
-        input_dim, hidden_dim, num_layers, output_dim, dropout
-    )
-    model.load_state_dict(torch.load("3d_best_model.pth"))
+    dropout_prob = 0.3
+    model = RefinedConvModel(input_dim, output_dim, dropout_prob)
+    model.load_state_dict(torch.load("2d_best_model.pth"))
     model.eval()
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.to(device)
@@ -146,7 +151,7 @@ def liveCapture():
                     )
                     left_hand_landmarks = np.array(
                         [
-                            [landmark.x, landmark.y, landmark.z]
+                            [landmark.x, landmark.y]
                             for landmark in results.left_hand_landmarks.landmark
                         ]
                     )
@@ -162,7 +167,7 @@ def liveCapture():
                     )
                     right_hand_landmarks = np.array(
                         [
-                            [landmark.x, landmark.y, landmark.z]
+                            [landmark.x, landmark.y]
                             for landmark in results.right_hand_landmarks.landmark
                         ]
                     )
@@ -179,7 +184,7 @@ def liveCapture():
                     )
                     body_landmarks = np.array(
                         [
-                            [landmark.x, landmark.y, landmark.z]
+                            [landmark.x, landmark.y]
                             for landmark in results.pose_landmarks.landmark
                         ]
                     )
@@ -215,9 +220,7 @@ def liveCapture():
                     # debug_save_landmarks_to_txt(current_frame_landmarks, frame_counter)
                     # debug_plot_landmarks(current_frame_landmarks, frame_counter)
                     normalized_landmarks = normalize_points(current_frame_landmarks)
-                    landmarks_list.append(
-                        reorder_landmarks(normalized_landmarks, order="distance")
-                    )
+                    landmarks_list.append(normalized_landmarks)
 
             # print(f"Current frames added to buffer {len(landmarks_list)}. Inferencing...")
 
@@ -226,7 +229,7 @@ def liveCapture():
                     device
                 )
                 # print(f"Before: {landmarks_tensor.size()}")
-                landmarks_tensor = landmarks_tensor.view(1, 10, 50, 3)
+                landmarks_tensor = landmarks_tensor.view(1, 10, 50, 2)
                 # Print out the contents of the tensor
                 # print(landmarks_tensor)
                 # print(f"After: {landmarks_tensor.size()}")
@@ -304,12 +307,9 @@ def normalize_points(points):
     # Calculate the centroids for x, y, and z
     centroid_x = sum(point[0] for point in points) / len(points)
     centroid_y = sum(point[1] for point in points) / len(points)
-    centroid_z = sum(point[2] for point in points) / len(points)
 
     # Normalize points by centering around the centroids
-    normalized_points = [
-        (x - centroid_x, y - centroid_y, z - centroid_z) for x, y, z in points
-    ]
+    normalized_points = [(x - centroid_x, y - centroid_y) for x, y in points]
 
     return normalized_points
 
