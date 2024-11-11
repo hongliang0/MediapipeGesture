@@ -2,6 +2,7 @@
 dataset/*
 original_dataset/*
 2d_dataset/*
+2d_dataset_backup/*
 3d_dataset/*
 3d_dataset_backup/*
 best_model.pth
