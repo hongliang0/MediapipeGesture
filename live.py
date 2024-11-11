@@ -100,7 +100,7 @@ def liveCapture():
     output_dim = 5  # Number of gestures
     dropout_prob = 0.3
     model = RefinedConvModel(input_dim, output_dim, dropout_prob)
-    model.load_state_dict(torch.load("2d_best_model.pth"))
+    model.load_state_dict(torch.load("models/2d_best_model.pth"))
     model.eval()
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.to(device)
