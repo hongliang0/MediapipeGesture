@@ -1,33 +1,23 @@
-########################################################################################
-# This script reads the landmarks from a text file and plots them on a graph.
-# The text file should contain the landmarks in the following format:
-# x1, y1, z1
-# x2, y2, z2
-# ...
-# xn, yn, zn
-# where x, y, and z are the coordinates of the landmarks.
-# any line that cannot be converted to float will be skipped, i.e. Right Left Body.
-########################################################################################
-
-
 import matplotlib.pyplot as plt
 import os
 
 
+# Updated function to read 2D points (x, y)
 def read_points(file_path):
     points = []
     with open(file_path, "r") as file:
         for line in file:
             line = line.strip()
             try:
-                x, y, z = map(float, line.split(","))
-                points.append((x, -y))  # Invert the y-axis
+                x, y = map(float, line.split(","))  # Read only x and y coordinates
+                points.append((x, -y))  # Invert the y-axis for plotting
             except ValueError:
                 # Skip lines that cannot be converted to float
                 continue
     return points
 
 
+# Plot function remains unchanged
 def plot_points(points):
     fig, ax = plt.subplots()
 
@@ -42,10 +32,13 @@ def plot_points(points):
     plt.show()
 
 
+# Example usage
 if __name__ == "__main__":
     # Change the path to the file you want to plot manually
-    file_name = "../3d_dataset/4_shrugging/1/1_5_landmarks.txt"
+    file_name = "../2d_dataset/1_waving/350/350_0_landmarks.txt"
     curr_dir = os.path.dirname(os.path.realpath(__file__))
     file_path = os.path.join(curr_dir, file_name)
+
+    # Read and plot the points
     points = read_points(file_path)
     plot_points(points)
