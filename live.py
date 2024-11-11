@@ -105,7 +105,7 @@ def liveCapture():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.to(device)
 
-    # Initialize Mediapipe drawing and pose utilities
+    # Initialise Mediapipe drawing and pose utilities
     mp_drawing = mp.solutions.drawing_utils
     mp_drawing_styles = mp.solutions.drawing_styles
     mp_pose = mp.solutions.pose
@@ -117,7 +117,8 @@ def liveCapture():
     detected_gesture = None
     probabilities = None
     prob_history = []
-    smooth_frames = 5
+    smooth_frames = 5  # Average the probabilities over the last 5 frames
+    cached_refresh = 0
 
     with mp_holistic.Holistic(
         min_detection_confidence=0.5, min_tracking_confidence=0.5
@@ -171,7 +172,6 @@ def liveCapture():
                             for landmark in results.right_hand_landmarks.landmark
                         ]
                     )
-                    # print("Right hand:\n", right_hand_landmarks)
                     current_frame_landmarks.extend(right_hand_landmarks)
 
                 # Draw and print pose landmarks. Remember body last!
@@ -188,52 +188,34 @@ def liveCapture():
                             for landmark in results.pose_landmarks.landmark
                         ]
                     )
-                    # print("Body:\n", body_landmarks)
 
-                    # Process body landmarks as we dont keep all
                     # Step 2: Split the remaining lines into hand data and body data
                     necessary_body_landmarks = np.concatenate(
                         (body_landmarks[11:17], body_landmarks[23:25]), axis=0
                     )
                     current_frame_landmarks.extend(necessary_body_landmarks)
 
-                    # Plot the necessary body landmarks as test
-                    # for landmark in necessary_body_landmarks:
-                    #     x, y, z = landmark
-                    #     cv2.circle(
-                    #         image, (int(x * 640), int(y * 480)), 5, (0, 255, 0), -1
-                    #     )
-
                 # Check if our landmarks are ok, i.e. all detections critical found
-                # print(len(current_frame_landmarks))
                 if len(current_frame_landmarks) == 50:
                     # print(current_frame_landmarks)
                     current_frame_landmarks = np.array(current_frame_landmarks)
-                    # if current_frame_landmarks.shape == (50, 3):
-                    #     print("The shape is correct:", current_frame_landmarks.shape)
-                    # else:
-                    #     print("Unexpected shape:", current_frame_landmarks.shape)
-                    # Process model
-                    # current_frame_landmarks = np.array(current_frame_landmarks).reshape(
-                    #     50, 3
-                    # )
-                    # debug_save_landmarks_to_txt(current_frame_landmarks, frame_counter)
-                    # debug_plot_landmarks(current_frame_landmarks, frame_counter)
                     normalized_landmarks = normalize_points(current_frame_landmarks)
                     landmarks_list.append(normalized_landmarks)
+                    cached_refresh = 0
+                else:
+                    cached_refresh += 1
 
-            # print(f"Current frames added to buffer {len(landmarks_list)}. Inferencing...")
+            # Implement cached refresh to autoclear frames from buffer
+            if cached_refresh > 5:
+                cached_refresh = 0
+                landmarks_list = []
+                landmarks_tensor = None
 
             if len(landmarks_list) == 10:
                 landmarks_tensor = torch.tensor(landmarks_list, dtype=torch.float32).to(
                     device
                 )
-                # print(f"Before: {landmarks_tensor.size()}")
                 landmarks_tensor = landmarks_tensor.view(1, 10, 50, 2)
-                # Print out the contents of the tensor
-                # print(landmarks_tensor)
-                # print(f"After: {landmarks_tensor.size()}")
-
                 output = model(landmarks_tensor)
 
                 # DEBUG: Print the probabilities of each class
@@ -244,12 +226,12 @@ def liveCapture():
 
                 avg_probabilities = np.mean(prob_history, axis=0)
                 predicted_gesture = np.argmax(avg_probabilities)
-
                 detected_gesture = gesture_labels[predicted_gesture.item()]
                 gesture_display_time = time.time()
-                print(f"Detected gesture: {detected_gesture}")
 
                 landmarks_list = []
+                landmarks_tensor = None
+                prob_history = []
 
             if detected_gesture and (time.time() - gesture_display_time) > 5:
                 detected_gesture = None
@@ -257,7 +239,7 @@ def liveCapture():
             # Display gesture and probabilities if available
             if probabilities is not None and (time.time() - gesture_display_time) <= 1:
                 # Display detected gesture in the top-left corner
-                if detected_gesture:
+                if detected_gesture and avg_probabilities[predicted_gesture] > 0.5:
                     cv2.putText(
                         image,
                         f"Gesture: {detected_gesture}",
